@@ -1,0 +1,739 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include<stdlib.h>
+#include<conio.h>
+#include<windows.h>
+#define Len sizeof(struct Vip)
+#define Len1 sizeof(struct Pay)
+char c = ' ';
+int sel = 1;
+int men = 0;
+
+struct Vip* head, * p1, * p2;//全局定义以便查询，编辑，删除各函数间传递
+struct Vip** many[100];//查询同名会员可能不止一个,存储各会员对应指针
+struct Vip** many1[100];//存储各会员对应指针的前一个指针，执行删除操作时使用
+int count1 = 0;//会员计数
+struct Pay* head1, * p3, * p4;
+struct Pay** much[100];//查询消费数据可能不止一条,存储各消费数据对应指针
+struct Pay** much1  [100];//存储各消费数据对应指针的前一个指针，执行删除操作时使用
+int count2 = 0;//消费数据计数
+int j=0,m=0;//全局定义查询会员后是否编辑或删除会员信息的表示变量
+
+struct Vip
+{
+	char name[50];
+	char gender[50];
+	char id[50];
+	char number[50];
+	char money[50];
+	struct Vip* next;
+};
+struct Pay
+{
+	
+	char year[50];
+	char month[50];
+	char day[50];
+	char hour[50];
+	char minute[50];
+	char id[50];
+	char payname[50];
+	char paysum[50];
+	char way[50];
+	struct Pay* next;
+};
+
+int inputcheck(char* check)//判断输入字符串是否为浮点或者整形，是则返回0
+{
+	if (strspn(check, "0123456789.") == strlen(check)) return 0;
+	else return 1;
+}
+int numbercheck(char* check)//判断输入字符串是否为纯数字,是则返回0
+{
+	if (strspn(check, "0123456789") == strlen(check)) return 0;
+	else return 1;
+}
+
+struct  Vip* creatmem(void)//添加会员
+{
+	struct Vip* head, * p1;
+	int   n = 0;
+	p1 = (struct Vip*)malloc(Len);
+	puts("输入姓名");
+	gets(p1->name);
+	puts("输入性别");
+	do { puts("请输入或再次输入"); gets(p1->gender); } while (strlen(p1->gender) > 6);
+	puts("输入电话号码");
+	do { puts("请输入或再次输入"); gets(p1->number); } while ( strlen(p1->number) > 11 || numbercheck(p1->number)==1);
+	puts("输入编号(5位字符)(编号不可修改！)");
+	do { puts("请输入或再次输入"); gets(p1->id); } while (strlen(p1->id) != 5);
+	puts("输入预存金额/元");
+	do { puts("请输入或再次输入"); gets(p1->money); } while (inputcheck(p1->money) == 1);
+	FILE* fp = fopen("memberdata.txt", "a");
+	if (fp == NULL) { printf("file write error\n"); return; }
+	fprintf(fp, "%s ", p1->name);
+	fprintf(fp, "%s ", p1->gender);
+	fprintf(fp, "%s ", p1->number);
+	fprintf(fp, "%s ", p1->id);
+	fprintf(fp, "%s\n", p1->money);
+	fclose(fp);
+	system("cls");
+	puts("添加成功");
+	return;
+}
+int memcheck(int i)//查询会员，接收1、2、3分别对应姓名，手机号码，编号查询,4,5则协助消费数据查询函数通过姓名、号码查会员编号
+{
+	FILE* fp = fopen("memberdata.txt", "r");
+	if (fp == NULL) { printf("file read error\n"); return NULL; }
+
+	int n = 0;
+	head = NULL;
+	p1 = (struct Vip*)malloc(sizeof(struct Vip));
+	p2 = p1;
+	while (fscanf(fp, "%s %s %s %s %s\n", p1->name, p1->gender, p1->number, p1->id, p1->money) != EOF)
+	{
+		n = n + 1;
+		if (n == 1)
+			head = p1;
+		else
+			p2->next = p1;
+		p2 = p1;
+		p1 = (struct Vip*)malloc(sizeof(struct Vip));
+	}
+	p2->next = NULL;
+	p1 = head;
+	puts("提取会员数据成功");
+	if (p1 == NULL) { puts("会员数据为空"); return; }
+	if (i == 1) puts("输入会员姓名"); if (i == 2)puts("输入会员手机号码"); if (i == 3)puts("输入会员编号");
+	if(i==4)puts("输入会员姓名"); if (i == 5)puts("输入会员手机号码");
+	char str[100];
+	gets(str);
+	if (i == 1)
+	{
+		do
+		{
+			if (strcmp(p1->name, str) == 0)
+			{
+				printf("姓名: %s\n", p1->name);
+				printf("性别: %s\n", p1->gender);
+				printf("电话号码: %s\n", p1->number);
+				printf("会员编号: %s\n", p1->id);
+				printf("预存金额: %s\n", p1->money); puts("");
+				count1 += 1;
+				many[count1] = p1;
+				many1[count1] = p2;
+			}
+			p2 = p1; p1 = p1->next;
+		} while (p1 != NULL);
+	}
+	else if (i == 2)
+	{
+		do
+		{
+			if (strcmp(p1->number, str) == 0)
+			{
+				printf("姓名: %s\n", p1->name);
+				printf("性别: %s\n", p1->gender);
+				printf("电话号码: %s\n", p1->number);
+				printf("会员编号: %s\n", p1->id);
+				printf("预存金额: %s\n", p1->money); puts("");
+				count1 += 1;
+				many[count1] = p1;
+				many1[count1] = p2;
+			}
+			p2 = p1; p1 = p1->next;
+		} while (p1 != NULL);
+	}
+	else if (i == 3)
+	{
+		do
+		{
+			if (strcmp(p1->id, str) == 0)
+			{
+				printf("姓名: %s\n", p1->name);
+				printf("性别: %s\n", p1->gender);
+				printf("电话号码: %s\n", p1->number);
+				printf("会员编号: %s\n", p1->id);
+				printf("预存金额: %s\n", p1->money); puts("");
+				count1 += 1;
+				many[count1] = p1;
+				many1[count1] = p2;
+			}
+			p2 = p1;	p1 = p1->next;
+		} while (p1 != NULL);
+	}
+	else if (i == 4)
+	{
+		do
+		{
+			if (strcmp(p1->name, str) == 0)
+			{
+				printf("姓名: %s\n", p1->name);
+				printf("性别: %s\n", p1->gender);
+				printf("电话号码: %s\n", p1->number);
+				printf("会员编号: %s\n", p1->id);
+				printf("预存金额: %s\n", p1->money); puts("");
+				count1 += 1;
+				many[count1] = p1;
+				many1[count1] = p2;
+			}
+			p2 = p1; p1 = p1->next;
+		} while (p1 != NULL);
+	}
+	else if (i == 5)
+	{
+		do
+		{
+			if (strcmp(p1->number, str) == 0)
+			{
+				printf("姓名: %s\n", p1->name);
+				printf("性别: %s\n", p1->gender);
+				printf("电话号码: %s\n", p1->number);
+				printf("会员编号: %s\n", p1->id);
+				printf("预存金额: %s\n", p1->money); puts("");
+				count1 += 1;
+				many[count1] = p1;
+				many1[count1] = p2;
+			}
+			p2 = p1; p1 = p1->next;
+		} while (p1 != NULL);
+	}
+	if (count1 == 0) { puts("没有该会员信息"); return -1; }
+	return 0;
+}
+void memedit_delete(k)//1, 2, 3, 4, 分别对应姓名，性别，电话号码，预存金额修改,5为删除会员
+{
+	struct Vip* tem=head;
+	if (k == 5)
+	{
+			if (count1 == 1) { p1 = many[1]; p2 = many1[1]; }
+			if (count1 > 1) { puts("删除第x个会员信息，输入->"); scanf("%d", &count1); p1 = many[count1]; p2 = many1[count1]; }
+			if (p1 == head) head = head->next;
+			else p2->next = p1->next;
+	}
+	if (k != 5)
+	{
+		if (count1 == 1) p1 = many[1];
+		if (count1 > 1) { puts("修改第x个会员信息，输入->"); scanf("%d", &count1); p1 = many[count1]; }
+		char str[50];
+		puts("输入修改后内容");
+		gets(str);
+		switch (k)
+		{
+		case 1: memset(p1->name,0, sizeof(p1->name));strcpy(p1->name,str); break;
+		case 2:memset(p1->gender, 0, sizeof(p1->gender)); strcpy(p1->gender, str); break;
+		case 3:memset(p1->number, 0, sizeof(p1->number)); strcpy(p1->number, str); break;
+		case 4:memset(p1->money, 0, sizeof(p1->money)); strcpy(p1->money, str); break;
+		default:break;
+		}
+	}
+	FILE* fp = fopen("memberdata.txt", "w");
+	if (head == NULL) { puts("操作成功"); return; }
+	if (fp == NULL) { printf("file write error\n"); return; }
+	while (head != NULL)
+	{
+		fprintf(fp, "%s ", head->name);
+		fprintf(fp, "%s ", head->gender);
+		fprintf(fp, "%s ", head->number);
+		fprintf(fp, "%s ", head->id);
+		fprintf(fp, "%s\n", head->money);
+		head = head->next;
+	}
+	head = tem;
+	fclose(fp);
+	puts("********操作成功********");
+	j = 0;
+	return;
+}
+struct  Pay* creatpay(void)//添加消费记录
+{
+	int   n = 0;
+	p3 = (struct Pay*)malloc(Len1);
+	puts("输入日期，以空格隔开，回车结束");
+	do {
+		puts("请输入或再次输入");
+		scanf("%s %s %s %s %s", p3->year, p3->month, p3->day, p3->hour, p3->minute); getchar();
+	    } while (numbercheck(p3->year) == 1 || numbercheck(p3->month) == 1 || numbercheck(p3->day) == 1 || numbercheck(p3->hour) == 1
+		         || numbercheck(p3->minute) == 1 || atoi(p3->year) > 9999 || atoi(p3->month) > 12 || atoi(p3->day) > 31 
+		         || atoi(p3->hour) > 24 || atoi(p3->minute) > 60);
+	puts("输入会员编号");
+	do { puts("请输入或再次输入"); gets(p3->id); } while (strlen(p3->id) != 5);
+	puts("输入消费名称");
+	gets(p3->payname);
+	puts("输入消费金额");
+	do { puts("请输入或再次输入"); gets(p3->paysum); } while (inputcheck(p3->paysum) == 1);
+	puts("输入付款方式");
+	gets(p3->way);
+	FILE* fp = fopen("paydata.txt", "a");
+	if (fp == NULL) { printf("file write error\n"); return; }
+	fprintf(fp, "%s ", p3->year);
+	fprintf(fp, "%s ", p3->month);
+	fprintf(fp, "%s ", p3->day);
+	fprintf(fp, "%s ", p3->hour);
+	fprintf(fp, "%s ", p3->minute);
+	fprintf(fp, "%s ", p3->id);
+	fprintf(fp, "%s ", p3->payname);
+	fprintf(fp, "%s ", p3->paysum);
+	fprintf(fp, "%s\n", p3->way);
+	fclose(fp);
+	system("cls");
+	puts("添加成功");
+	return;
+}
+int paycheck_addup(int i)//查询会员消费记录，与统计会员消费，1，2，3对应编号，姓名，电话号码查询记录，4,5,6则统计,
+{
+	FILE* fp = fopen("paydata.txt", "r");
+	if (fp == NULL) { printf("file read error\n"); return NULL; }
+	int n = 0;
+	head1= NULL;
+	p3 = (struct Pay*)malloc(Len1);
+	p4 = p3;
+	while (fscanf(fp, "%s %s %s %s %s %s %s %s %s\n", p3->year, p3->month, p3->day, p3->hour, p3->minute,p3->id,p3->payname,p3->paysum,p3->way) != EOF)
+	{
+		n = n + 1;
+		if (n == 1)
+			head1 = p3;
+		else
+			p4->next = p3;
+		p4 = p3;
+		p3 = (struct Pay*)malloc(Len1);
+	}
+	p4->next = NULL;
+	p3 = head1;
+	puts("提取会员消费数据成功");
+	if (p3 == NULL) { puts("会员消费数据为空"); return; }
+	char str[100];
+
+	if (i == 2 || i == 5) 
+	{
+	memcheck(4); if (count1 == 0) { puts("没有该会员信息"); return -1; };
+	if (count1 == 1)p1 = many[1];
+	if (count1 > 1 && i == 2) { puts("查询第x个会员消费记录，请输入->"); scanf("%d", &count1); p1 = many[count1]; }
+	if (count1 > 1 && i == 5) { puts("统计第x个会员消费金额，请输入->"); scanf("%d", &count1); p1 = many[count1]; }
+	long float sum=0;
+	do
+	{
+		if (strcmp(p3->id, p1->id) == 0)
+		{
+			if (i == 2)
+			{
+				printf("日期: %s年%s月%s日%s时%s分\n", p3->year, p3->month, p3->day, p3->hour, p3->minute);
+				printf("会员编号: %s\n", p3->id);
+				printf("消费名称: %s\n", p3->payname);
+				printf("消费金额: %s\n", p3->paysum);
+				printf("消费方式: %s\n", p3->way);
+				puts("");
+				count2 += 1;
+				much[count2] = p3;
+				much1[count2] = p4;
+			}
+			if (i == 5)sum += atof(p3->paysum);
+		}
+		p4 = p3; p3 = p3->next;
+	} while (p3 != NULL);
+	if (i == 5)printf("该会员消费总金额为：%lf元\n", sum);
+	if (count2 == 0 && i == 2) { puts("没有该会员消费数据信息"); return -1; }
+	return 0;
+	}
+
+	else if (i == 3 || i == 5)
+	{ memcheck(5); if (count1 == 0) { puts("没有该会员信息"); return -1; };
+	if (count1 == 1)p1 = many[1];
+	if (count1 > 1 && i == 3) { puts("查询第x个会员消费记录，输入->"); scanf("%d", &count1); p1 = many[count1];}
+	if (count1 > 1 && i == 6) { puts("统计第x个会员消费金额，请输入->"); scanf("%d", &count1); p1 = many[count1]; }
+	long float sum = 0;
+	do
+	{
+		if (strcmp(p3->id, p1->id) == 0)
+		{
+			if (i == 3)
+			{
+				printf("日期: %s年%s月%s日%s时%s分\n", p3->year, p3->month, p3->day, p3->hour, p3->minute);
+				printf("会员编号: %s\n", p3->id);
+				printf("消费名称: %s\n", p3->payname);
+				printf("消费金额: %s\n", p3->paysum);
+				printf("消费方式: %s\n", p3->way);
+				puts("");
+				count2 += 1;
+				much[count2] = p3;
+				much1[count2] = p4;
+			}
+			if (i == 6)sum += atof(p3->paysum); 
+		}
+		p4 = p3; p3 = p3->next;
+	} while (p3 != NULL);
+	if (i == 5)printf("该会员消费总金额为：%lf元\n", sum);
+	if (count2 == 0 && i == 3) { puts("没有该会员消费数据信息"); return -1; }
+	return 0;
+	}
+
+	else if (i == 1 || i == 4)
+	{
+		puts("输入会员编号");
+		{
+			gets(str);
+		}
+		long float sum = 0;
+		do
+		{
+			if (strcmp(p3->id, str) == 0)
+			{
+				if (i == 1)
+				{
+					printf("日期: %s年%s月%s日%s时%s分\n", p3->year, p3->month, p3->day, p3->hour, p3->minute);
+					printf("会员编号: %s\n", p3->id);
+					printf("消费名称: %s\n", p3->payname);
+					printf("消费金额: %s\n", p3->paysum);
+					printf("消费方式: %s\n", p3->way);
+					puts("");
+					count2 += 1;
+					much[count2] = p3;
+					much1[count2] = p4;
+				}
+				if (i == 4)sum += atof(p3->paysum);
+			}
+			p4 = p3; p3 = p3->next;
+		} while (p3 != NULL);
+		if (i == 4)printf("该会员消费总金额为：%lf元\n", sum);
+		if (count2 == 0 && i == 1) { puts("没有该会员消费数据信息"); return -1; }
+		return 0;
+	}
+}
+void payedit_delete(n)//1, 2, 3, 4, 5 分别对应日期，编号，消费名称，消费金额，付款方式修改, 6为删除会员消费数据
+{
+	struct Pay* tem = head1;
+	struct Pay temtime;
+	if (n == 6)
+	{
+		if (count2 == 1) p3 = much[1];
+		if (count2 > 1) { puts("删除第x条消费数据，输入->"); scanf("%d", &count2); p3 = much[count2]; p4 = much1[count2]; }
+		if (p3 == head1) head1 = head1->next; else p4->next = p3->next;
+	}
+	if (n != 6)
+	{
+		if (count2 == 1) p3 = much[1];
+		if (count2 >1) {puts("修改第x条消费数据，输入->"); scanf("%d", &count2); p3 = much[count2];}
+		char str[50];
+		puts("输入修改后内容");
+		switch (n)
+		{
+		case 1:puts("输入日期，以空格隔开，回车结束");
+			   scanf("%s %s %s %s %s",temtime.year,temtime.month,temtime.day,temtime.hour,temtime.minute); getchar();
+			   memset(p3->year, 0, sizeof(p3->year)); strcpy(p3->year, temtime.year);
+			   memset(p3->month, 0, sizeof(p3->month)); strcpy(p3->month, temtime.month);
+			   memset(p3->day, 0, sizeof(p3->day)); strcpy(p3->day, temtime.day);
+			   memset(p3->hour, 0, sizeof(p3->hour)); strcpy(p3->hour, temtime.hour);
+			   memset(p3->minute, 0, sizeof(p3->minute)); strcpy(p3->minute, temtime.minute);
+			   break;
+		case 2:gets(str); memset(p3->id, 0, sizeof(p1->id)); strcpy(p1->id, str); break;
+		case 3:gets(str); memset(p3->payname, 0, sizeof(p3->payname)); strcpy(p3->payname, str); break;
+		case 4:gets(str); memset(p3->paysum, 0, sizeof(p3->paysum)); strcpy(p3->paysum, str); break;
+		case 5:gets(str); memset(p3->way, 0, sizeof(p3->way)); strcpy(p3->way, str); break;
+		default:break;
+		}
+	}
+	FILE* fp = fopen("paydata.txt", "w");
+	if (head1 == NULL) { puts("操作成功"); return; }
+	if (fp == NULL) { printf("file write error\n"); return; }
+	while (head1 != NULL)
+	{
+		fprintf(fp, "%s ", head1->year);
+		fprintf(fp, "%s ", head1->month);
+		fprintf(fp, "%s ", head1->day);
+		fprintf(fp, "%s ", head1->hour);
+		fprintf(fp, "%s ", head1->minute);
+		fprintf(fp, "%s ", head1->id);
+		fprintf(fp, "%s ", head1->payname);
+		fprintf(fp, "%s ", head1->paysum);
+		fprintf(fp, "%s\n", head1->way);
+		head1 = head1->next;
+	}
+	head1 = tem;
+	fclose(fp);
+	puts("********操作成功********");
+	m = 0;
+	return;
+}
+void payamount()//月消费金额统计
+{
+	FILE* fp = fopen("paydata.txt", "r");
+	if (fp == NULL) { printf("file read error\n"); return NULL; }
+	int n = 0;
+	head1 = NULL;
+	p3 = (struct Pay*)malloc(Len1);
+	p4 = p3;
+	while (fscanf(fp, "%s %s %s %s %s %s %s %s %s\n", p3->year, p3->month, p3->day, p3->hour, p3->minute, p3->id, p3->payname, p3->paysum, p3->way) != EOF)
+	{
+		n = n + 1;
+		if (n == 1)
+			head1 = p3;
+		else
+			p4->next = p3;
+		p4 = p3;
+		p3 = (struct Pay*)malloc(Len1);
+	}
+	p4->next = NULL;
+	p3 = head1;
+	puts("提取会员消费数据成功");
+	if (p3 == NULL) { puts("会员消费数据为空"); return; }
+	char mon[50], yea[50];
+	puts("输入要查询的x年x月店销售总额(输入以空格隔开，回车结束)");
+	scanf("%s %s", &yea, &mon);
+	long float sum=0;
+	do
+	{
+		if (strcmp(p3->year,yea ) == 0)
+		{
+			if (strcmp(p3->month, mon) == 0)
+			sum += atof(p3->paysum);
+		}
+		p4 = p3; p3 = p3->next;
+	} while (p3 != NULL);
+	
+	printf("%s年%s月销售总额为: %lf元", yea, mon, sum);
+}
+
+char Menu[7][20] = {
+	"[A]  会员管理  ",
+	"[B]  消费数据管理  ",
+	"[C]  会员消费统计  ",
+	"[D]  店月销售统计  ",
+	"",
+	" ",
+	"[Q]  Exit   "
+};
+char Menu1[7][20] = {
+	"[A]  添加会员  ",
+	"[B]  查询会员  ",
+	"[C]  编辑会员信息",
+	"[D]  删除会员  ",
+	"",
+	"[E]  back ",
+	"[Q]  Exit   "
+};
+char Menu2[7][24] = {
+	"[A]  添加会员消费记录  ",
+	"[B]  查询会员消费记录  ",
+	"[C]  编辑会员消费记录  ",
+	"[D]  删除会员消费记录  ",
+	"",
+	"[E]  back ",
+	"[Q]  Exit   "
+};
+char Menu3[7][20] = {
+	"[A]  修改姓名  ",
+	"[B]  修改性别  ",
+	"[C]  修改电话号码  ",
+	"[D]  修改预存金额  ",
+	"",
+	"[E]  back ",
+	"[Q]  Exit   "
+};
+char Menu4[7][20] = {
+	"[A]  姓名查询  ",
+	"[B]  电话号码查询  ",
+	"[C]  编号查询  ",
+	"",
+	"",
+	"[D]  back ",
+	"[Q]  Exit   "
+};
+char Menu5[7][20] = {
+	"[A]  姓名查询  ",
+	"[B]  电话号码查询  ",
+	"[C]  编号查询  ",
+	"",
+	"",
+	"[E]  back ",
+	"[Q]  Exit   "
+};
+char Menu6[7][20] = {
+	"[A]  修改日期  ",
+	"[B]  修改会员编号  ",
+	"[C]  修改消费名称",
+	"[D]  修改消费金额 ",
+	"[E]  修改付款方式 ",
+	"[F]  back",
+	"[Q]  Exit   "
+};
+char Menu7[7][20] = {
+	"[A]  姓名查询  ",
+	"[B]  电话号码查询  ",
+	"[C]  编号查询  ",
+	" ",
+	"",
+	"[E]  back ",
+	"[Q]  Exit   "
+};
+
+void displaymenu(int hilight)
+{
+	int i;
+	printf("\n======================\n");
+	for (i = 0; i < 7; i++) {
+		if (i == hilight - 1)
+			SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0x70);
+		else
+			SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0x07);
+		if (men == 0)printf("%s\n", Menu[i]);
+		if (men == 1)printf("%s\n", Menu1[i]);
+		if (men == 2)printf("%s\n", Menu2[i]);
+		if (men == 3)printf("%s\n", Menu3[i]);
+		if (men == 4)printf("%s\n", Menu4[i]);
+		if (men == 5)printf("%s\n", Menu5[i]);
+		if (men == 6)printf("%s\n", Menu6[i]);
+		if (men == 7)printf("%s\n", Menu7[i]);
+	}
+	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+	printf("======================\n");
+}
+
+void controlmenu()
+{
+	for (;;) {
+		if (_kbhit()) {
+			c = _getch();
+			//if (c==72){
+			if (GetAsyncKeyState(VK_UP)) {
+				sel = (sel > 1) ? sel - 1 : 6;
+				Sleep(100);
+				system("cls");
+				displaymenu(sel);
+			}
+			if (GetAsyncKeyState(VK_DOWN)) {
+				sel = (sel < 7) ? sel + 1 : 1;
+				Sleep(100);
+				system("cls");
+				displaymenu(sel);
+			}
+			if (c <= 'z' && c >= 'a')c = c - ('a' - 'A');
+			if (c <= 'E' && c >= 'A') {
+				sel = c - 'A' + 1;
+				system("cls");
+				displaymenu(sel);
+				printf("command is [%c]", c);
+			}
+			else if (c == '\r') {
+				if (sel == 7)return (0);
+				system("cls");
+				if (men == 0)//开始菜单
+				{
+					switch (sel)
+					{
+					case 1:men = 1; break;
+					case 2:men = 2; break;
+					case 3:men = 7; break;
+					case 4:payamount(); break;
+					case 5:break;
+					case 6:break;
+					default:break;
+					}
+				}
+				else if (men == 1)//会员管理
+				{
+					switch (sel)
+					{
+					case 1:creatmem(); break;
+					case 2:men = 4; break;
+					case 3:j = 1; men = 4; break;
+					case 4:j = 2; men = 4; break;
+					case 5:break;
+					case 6:men = 0; break;
+					default:break;
+					}
+				}
+				else if (men == 2)//消费管理
+				{
+					switch (sel)
+					{
+					case 1:creatpay(); break;
+					case 2:men = 5; break;
+					case 3:m = 1; men = 5; break;
+					case 4:m = 2; men = 5; break;
+					case 5: break;
+					case 6:men = 0; break;
+					default:break;
+					}
+				}
+				else if (men == 3)//编辑会员
+				{
+					switch (sel)
+					{
+					case 1:memedit_delete(1); break;
+					case 2:memedit_delete(2); break;
+					case 3:memedit_delete(3); break;
+					case 4:memedit_delete(4); break;
+					case 5: break;
+					case 6:men = 4; break;
+					default:break;
+					}
+				}
+				else if (men == 4)//查询会员
+				{
+					int receive;
+					switch (sel)
+					{
+					case 1:receive = memcheck(1); if (j == 1 && receive == 0)men = 3; if (j == 2){puts(" "); memedit_delete(5); } break;
+					case 2:receive = memcheck(2); if (j == 1 && receive == 0)men = 3; if (j == 2) { puts(" "); memedit_delete(5); }break;
+					case 3:receive = memcheck(3); if (j == 1 && receive == 0)men = 3; if (j == 2){puts(" "); memedit_delete(5); }break;
+					case 4:break;
+					case 5:break;
+					case 6:men = 1; break;
+					default:break;
+					}
+				}
+				else if (men == 5)//查询会员消费记录
+				{
+					int receive;
+					switch (sel)
+					{
+					case 1:receive = paycheck_addup(2); if (m == 1 && receive == 0)men = 6; if (m == 2 && receive == 0) { puts(" "); payedit_delete(6); } break;
+					case 2:receive = paycheck_addup(3); if (m == 1 && receive == 0)men = 6; if (m == 2 && receive == 0) { puts(" "); payedit_delete(6); } break;
+					case 3:receive = paycheck_addup(1); if (m == 1 && receive == 0)men = 6; if (m == 2 && receive == 0) { puts(" "); payedit_delete(6); } break;
+					case 4:; break;
+					case 5:break;
+					case 6:men = 2; break;
+					default:break;
+					}
+				}
+				else if (men == 6)//编辑会员消费记录
+				{
+					int receive;
+					switch (sel)
+					{
+					case 1:payedit_delete(1); break;
+					case 2:payedit_delete(2); break;
+					case 3:payedit_delete(3); break;
+					case 4:payedit_delete(4); break;
+					case 5:payedit_delete(5); break;
+					case 6:men = 5; break;
+					default:break;
+					}
+				}
+				else if (men == 7)//会员消费统计
+				{
+					switch (sel)
+					{
+					case 1:paycheck_addup(5); break;
+					case 2:paycheck_addup(6); break;
+					case 3:paycheck_addup(4); break;
+					case 4:; break;
+					case 5:break;
+					case 6:men = 0; break;
+					default:break;
+					}
+				}
+				displaymenu(sel);
+				printf("command is [%c]", 'A' + sel - 1);
+			}
+			else if (c == 'Q')
+				return(0);
+		}
+	}
+}
+
+int main() 
+{
+	displaymenu(sel);
+	controlmenu();
+}
